@@ -1,4 +1,5 @@
 #include <MsTimer2.h>
+#include <EEPROM.h>
 
 #define arr_length(x)  (sizeof(x)/sizeof(*x))   // Find number of elements in array x.
 
@@ -7,13 +8,15 @@
 
 #define NUM_STALLS 4
 
-unsigned int pin_sw[NUM_STALLS] = {             // Array of pin numbers for switches.
+byte pin_sw[NUM_STALLS] = {             // Array of pin numbers for switches.
    6, 6, 6, 6                          // TODO: Replace with actual pin locations.
 };
 
-unsigned int pin_svo_pwm[NUM_STALLS] = {        // Array of pin numbers for servo PWM.
+byte pin_svo_pwm[NUM_STALLS] = {        // Array of pin numbers for servo PWM.
    9, 9, 9, 9                          // TODO: Replace with actual pin locations.
 };
+
+byte pin_pwr_sense = 5;                 // Power sense pin. TODO: Replace with actual pin location.
 
 unsigned int sw[NUM_STALLS], pos[NUM_STALLS];   // Switch state and door position arrays.
 
@@ -24,24 +27,30 @@ const unsigned int posOpen = 1920;     // open position
 
 // Setup function.
 void setup() {
-   // setup logic variables
-   for (int i = 0; i < NUM_STALLS; i++) {
-      pos[i] = posClosed;  // TODO: Replace with memory read of last position.
-   }
+   // Setup logic variables.
+   int eeAddr = 0;
    
-   // setup servos
+   EEPROM.get(eeAddr,pos);    // Get entire position array.
+   
+   // Get postition array one element at a time.
+   // for (int i = 0; i < NUM_STALLS; i++) {
+      // EEPROM.get(eeAddr,pos[i]);
+      // eeAddr += sizeof(pos[i]);
+   // }
+   
+   // Setup servos.
    for (int i = 0; i < NUM_STALLS; i++) {
       pinMode(pin_svo_pwm[i], OUTPUT);
       digitalWrite(pin_svo_pwm[i], LOW);
       updateServo();                      // TODO: Replace with slow movement to correct memory position.
    }
    
-   // setup switches
+   // Setup switches.
    for (int i = 0; i < NUM_STALLS; i++) {
       pinMode(pin_sw[i], INPUT_PULLUP);
    }
    
-   // setup servo timer interrupt
+   // Setup servo timer interrupt.
    MsTimer2::set(3, isr_timerServo);   // period between updates in milliseconds
    MsTimer2::start();
 }
@@ -49,14 +58,19 @@ void setup() {
 
 // Main loop function.
 void loop() {
-   // Update switches
+   // Update switches.
    for (int i = 0; i < NUM_STALLS; i++) {
       sw[i] = digitalRead(pin_sw[i]);
    }
 
-   // event handlers
+   // Event handlers.
    if (timerServoExp) {
      updatePos();
+   }
+   
+   // Check if power down is occuring by reading power sense.
+   if (digitalRead(pin_pwr_sense) == LOW) {
+      powerDown();
    }
 }
 
@@ -101,7 +115,25 @@ void updateServo() {
 }
 
 
-
+// Power down procedure.
+void powerDown() {
+   while (true) {
+      noInterrupts();   // Disable interrupts.
+      
+      // Write current servo positions to nonvolatile memory.
+      int eeAddr = 0;
+      
+      EEPROM.put(eeAddr,pos);    // Put entire position array.
+      
+      // Put position array one element at a time.
+      // for (int i = 0; i < NUM_STALLS; i++) {
+         // EEPROM.put(eeAddr,pos[i]);
+         // eeAddr += sizeof(pos[i]);
+      // }
+      
+      // Wait forever...
+   }
+}
 
 
 
