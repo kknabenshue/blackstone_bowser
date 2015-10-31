@@ -8,12 +8,14 @@
 
 #define NUM_STALLS 4
 
+#define DEBUG_MODE 1
+
 byte pin_sw[NUM_STALLS] = {            // Array of pin numbers for switches.
-   9, 8, 7, 6                          // TODO: Replace with actual pin locations.
+   9//, 8, 7, 6                          // TODO: Replace with actual pin locations.
 };
 
 byte pin_svo_pwm[NUM_STALLS] = {       // Array of pin numbers for servo PWM.
-   13, 12, 11, 10                      // TODO: Replace with actual pin locations.
+   13//, 12, 11, 10                      // TODO: Replace with actual pin locations.
 };
 
 byte pin_pwr_sense = 5;                 // Power sense pin. TODO: Replace with actual pin location.
@@ -27,16 +29,21 @@ const unsigned int posOpen = 1920;     // open position
 
 // Setup function.
 void setup() {
-   // Setup logic variables.
-   int eeAddr = 0;
+   // Setup logic variables: w/o EEPROM.
+   for (int i = 0; i < NUM_STALLS; i++) {
+      pos[i] = posClosed;  // TODO: Replace with memory read of last position.
+   }
    
-   EEPROM.get(eeAddr,pos);    // Get entire position array.
-   
-   // Get postition array one element at a time.
-   // for (int i = 0; i < NUM_STALLS; i++) {
-      // EEPROM.get(eeAddr,pos[i]);
-      // eeAddr += sizeof(pos[i]);
-   // }
+//   // Setup logic variables: w/ EEPROM.
+//   int eeAddr = 0;
+//   
+//   EEPROM.get(eeAddr,pos);    // Get entire position array.
+//   
+//   // Get postition array one element at a time.
+//   // for (int i = 0; i < NUM_STALLS; i++) {
+//      // EEPROM.get(eeAddr,pos[i]);
+//      // eeAddr += sizeof(pos[i]);
+//   // }
    
    // Setup servos.
    for (int i = 0; i < NUM_STALLS; i++) {
@@ -51,17 +58,13 @@ void setup() {
    }
    
    // Setup servo timer interrupt.
-   MsTimer2::set(3, isr_timerServo);   // period between updates in milliseconds
+   MsTimer2::set(10, isr_timerServo);   // period between updates in milliseconds
    MsTimer2::start();
 
    //Initialize serial and wait for port to open:
    Serial.begin(9600);
-   delay(2000);
-   
-   // prints title with ending line break
-   if (Serial.availableForWrite()) {
-      Serial.println("Serial Debug:");
-   }
+   Serial.println("Serial Debug");
+   Serial.println("------------");
 }
 
 
@@ -78,8 +81,10 @@ void loop() {
    }
    
    // Check if power down is occuring by reading power sense.
-   if (digitalRead(pin_pwr_sense) == LOW) {
-      powerDown();
+   if (!DEBUG_MODE) {
+      if (digitalRead(pin_pwr_sense) == LOW) {
+         powerDown();
+      }
    }
 }
 
@@ -96,14 +101,16 @@ void updatePos() {
       // Move if switch is at OPEN, but door is not at OPEN.
       if (sw[i] == OPEN) {
          if (pos[i] != posOpen) {
-            pos[i]++;
+//            pos[i]++;
+            pos[i] += 10;
             updateServo();
          }
       }
       // Move if switch is at CLOSED, but door is not at CLOSED.
       else if (sw[i] == CLOSED) {
          if (pos[i] != posClosed) {
-            pos[i]--;
+//            pos[i]--;
+            pos[i] += 10;
             updateServo();
          }
       }
