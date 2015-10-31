@@ -8,12 +8,12 @@
 
 #define NUM_STALLS 4
 
-byte pin_sw[NUM_STALLS] = {             // Array of pin numbers for switches.
-   6, 6, 6, 6                          // TODO: Replace with actual pin locations.
+byte pin_sw[NUM_STALLS] = {            // Array of pin numbers for switches.
+   9, 8, 7, 6                          // TODO: Replace with actual pin locations.
 };
 
-byte pin_svo_pwm[NUM_STALLS] = {        // Array of pin numbers for servo PWM.
-   9, 9, 9, 9                          // TODO: Replace with actual pin locations.
+byte pin_svo_pwm[NUM_STALLS] = {       // Array of pin numbers for servo PWM.
+   13, 12, 11, 10                      // TODO: Replace with actual pin locations.
 };
 
 byte pin_pwr_sense = 5;                 // Power sense pin. TODO: Replace with actual pin location.
@@ -53,6 +53,15 @@ void setup() {
    // Setup servo timer interrupt.
    MsTimer2::set(3, isr_timerServo);   // period between updates in milliseconds
    MsTimer2::start();
+
+   //Initialize serial and wait for port to open:
+   Serial.begin(9600);
+   delay(2000);
+   
+   // prints title with ending line break
+   if (Serial.availableForWrite()) {
+      Serial.println("Serial Debug:");
+   }
 }
 
 
