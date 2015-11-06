@@ -22,6 +22,8 @@ byte pin_pwr_sense = 5;                // Power sense pin. TODO: Replace with ac
 
 unsigned int sw[NUM_STALLS], pos[NUM_STALLS];   // Switch state and door position arrays.
 
+bool enUpServo[NUM_STALLS];            // Array of enables for the update function.
+
 volatile boolean timerServoExp;
 // const unsigned int posClosed = 1150;   // closed position
 // const unsigned int posOpen = 1920;     // open position
@@ -36,6 +38,7 @@ void setup() {
       pos[i] = posClosed;  // TODO: Replace with memory read of last position.
    }
    
+   
 //   // Setup logic variables: w/ EEPROM.
 //   int eeAddr = 0;
 //   
@@ -47,21 +50,27 @@ void setup() {
 //      // eeAddr += sizeof(pos[i]);
 //   // }
    
+   
    // Setup servos.
    for (int i = 0; i < NUM_STALLS; i++) {
       pinMode(pin_svo_pwm[i], OUTPUT);
       digitalWrite(pin_svo_pwm[i], LOW);
-      updateServo();                      // TODO: Replace with slow movement to correct memory position.
+      enUpServo[i] = true;
    }
+   
+   updateServo();                      // TODO: Replace with slow movement to correct memory position.
+   
    
    // Setup switches.
    for (int i = 0; i < NUM_STALLS; i++) {
       pinMode(pin_sw[i], INPUT_PULLUP);
    }
    
+   
    // Setup servo timer interrupt.
    MsTimer2::set(2, isr_timerServo);   // period between updates in milliseconds
    MsTimer2::start();
+   
    
    if (DEBUG_MODE) {
       //Initialize serial and wait for port to open:
@@ -78,11 +87,13 @@ void loop() {
    for (int i = 0; i < NUM_STALLS; i++) {
       sw[i] = digitalRead(pin_sw[i]);
    }
-
+   
+   
    // Event handlers.
    if (timerServoExp) {
      updatePos();
    }
+   
    
    // Check if power down is occuring by reading power sense.
    if (!DEBUG_MODE) {
@@ -105,21 +116,22 @@ void updatePos() {
       // Move if switch is at OPEN, but door is not at OPEN.
       if (sw[i] == OPEN) {
          if (pos[i] != posOpen) {
-           pos[i]++;
+            pos[i]++;
             // pos[i] += 10;
-            updateServo();
+            enUpServo[i] = true;
          }
       }
       // Move if switch is at CLOSED, but door is not at CLOSED.
       else if (sw[i] == CLOSED) {
          if (pos[i] != posClosed) {
-           pos[i]--;
+            pos[i]--;
             // pos[i] += 10;
-            updateServo();
+            enUpServo[i] = true;
          }
       }
    }
-
+   
+   updateServo();
    timerServoExp = false;
 }
 
@@ -127,10 +139,13 @@ void updatePos() {
 // Update servo postion.
 void updateServo() {
    for (int i = 0; i < NUM_STALLS; i++) {
-      long startTime = micros();
-      digitalWrite(pin_svo_pwm[i], HIGH);
-      while (micros() - startTime < pos[i]); // Pulse PWM high for position length.
-      digitalWrite(pin_svo_pwm[i], LOW);
+      if (enUpServo[i]) {
+         long startTime = micros();
+         digitalWrite(pin_svo_pwm[i], HIGH);
+         while (micros() - startTime < pos[i]); // Pulse PWM high for position length.
+         digitalWrite(pin_svo_pwm[i], LOW);
+         enUpServo[i] = false;
+      }
    }
 }
 
