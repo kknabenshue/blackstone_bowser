@@ -11,20 +11,22 @@
 #define DEBUG_MODE 1
 
 byte pin_sw[NUM_STALLS] = {            // Array of pin numbers for switches.
-   9//, 8, 7, 6                          // TODO: Replace with actual pin locations.
+   9, 8, 7, 6                          // TODO: Replace with actual pin locations.
 };
 
 byte pin_svo_pwm[NUM_STALLS] = {       // Array of pin numbers for servo PWM.
-   13//, 12, 11, 10                      // TODO: Replace with actual pin locations.
+   13, 12, 11, 10                      // TODO: Replace with actual pin locations.
 };
 
-byte pin_pwr_sense = 5;                 // Power sense pin. TODO: Replace with actual pin location.
+byte pin_pwr_sense = 5;                // Power sense pin. TODO: Replace with actual pin location.
 
 unsigned int sw[NUM_STALLS], pos[NUM_STALLS];   // Switch state and door position arrays.
 
 volatile boolean timerServoExp;
-const unsigned int posClosed = 1150;   // closed position
-const unsigned int posOpen = 1920;     // open position
+// const unsigned int posClosed = 1150;   // closed position
+// const unsigned int posOpen = 1920;     // open position
+const unsigned int posClosed = 1300;   // closed position
+const unsigned int posOpen = 1700;     // open position
 
 
 // Setup function.
@@ -58,13 +60,15 @@ void setup() {
    }
    
    // Setup servo timer interrupt.
-   MsTimer2::set(10, isr_timerServo);   // period between updates in milliseconds
+   MsTimer2::set(2, isr_timerServo);   // period between updates in milliseconds
    MsTimer2::start();
-
-   //Initialize serial and wait for port to open:
-   Serial.begin(9600);
-   Serial.println("Serial Debug");
-   Serial.println("------------");
+   
+   if (DEBUG_MODE) {
+      //Initialize serial and wait for port to open:
+      Serial.begin(9600);
+      Serial.println("Serial Debug");
+      Serial.println("------------");
+   }
 }
 
 
@@ -101,16 +105,16 @@ void updatePos() {
       // Move if switch is at OPEN, but door is not at OPEN.
       if (sw[i] == OPEN) {
          if (pos[i] != posOpen) {
-//            pos[i]++;
-            pos[i] += 10;
+           pos[i]++;
+            // pos[i] += 10;
             updateServo();
          }
       }
       // Move if switch is at CLOSED, but door is not at CLOSED.
       else if (sw[i] == CLOSED) {
          if (pos[i] != posClosed) {
-//            pos[i]--;
-            pos[i] += 10;
+           pos[i]--;
+            // pos[i] += 10;
             updateServo();
          }
       }
