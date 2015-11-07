@@ -1,5 +1,6 @@
 #include <MsTimer2.h>
 #include <EEPROM.h>
+#include <TimerOne.h>
 
 #define arr_length(x)  (sizeof(x)/sizeof(*x))   // Find number of elements in array x.
 
@@ -7,35 +8,42 @@
 #define CLOSED LOW
 
 #define NUM_STALLS 4
+#define MOVE_TIME_MS 4000              // Move time in milliseconds.
 
 #define DEBUG_MODE 1
 
-byte pin_sw[NUM_STALLS] = {            // Array of pin numbers for switches.
-   9, 8, 7, 6                          // TODO: Replace with actual pin locations.
+// #define POS_CLOSED 1150             // Closed position.
+// #define POS_OPEN 1920               // Open position.
+#define POS_CLOSED 1300                   // Closed position.
+#define POS_OPEN 1700                     // Open position.
+
+char bufDebug[32];                        // Debug character buffer.
+
+byte pin_sw[NUM_STALLS] = {               // Array of pin numbers for switches.
+   9, 8, 6, 7
 };
 
-byte pin_svo_pwm[NUM_STALLS] = {       // Array of pin numbers for servo PWM.
-   13, 12, 11, 10                      // TODO: Replace with actual pin locations.
+byte pin_svo_pwm[NUM_STALLS] = {          // Array of pin numbers for servo PWM.
+   13, 12, 11, 10
 };
 
-byte pin_pwr_sense = 5;                // Power sense pin. TODO: Replace with actual pin location.
+byte pin_pwr_sense = 5;                   // Power sense pin. TODO: Replace with actual pin location.
 
-unsigned int sw[NUM_STALLS], pos[NUM_STALLS];   // Switch state and door position arrays.
+unsigned int sw[NUM_STALLS];              // Switch state array.
+unsigned int pos[NUM_STALLS];             // Door position array.
 
-bool enUpServo[NUM_STALLS];            // Array of enables for the update function.
+bool enUpServo[NUM_STALLS];               // Array of enables for the update function.
 
-volatile boolean timerServoExp;
-// const unsigned int posClosed = 1150;   // closed position
-// const unsigned int posOpen = 1920;     // open position
-const unsigned int posClosed = 1300;   // closed position
-const unsigned int posOpen = 1700;     // open position
+unsigned int cntEnUpServo = 0;            // Counter for number of enabled servos for update.
+unsigned long cntTimerServoExp = 0;       // Counter for number of servo timer expirations.
+volatile boolean timerServoExp;           // Flag to signal servo timer expiration.
 
 
 // Setup function.
 void setup() {
    // Setup logic variables: w/o EEPROM.
    for (int i = 0; i < NUM_STALLS; i++) {
-      pos[i] = posClosed;  // TODO: Replace with memory read of last position.
+      pos[i] = POS_CLOSED;  // TODO: Replace with memory read of last position.
    }
    
    
@@ -68,15 +76,19 @@ void setup() {
    
    
    // Setup servo timer interrupt.
-   MsTimer2::set(2, isr_timerServo);   // period between updates in milliseconds
+   MsTimer2::set(1, isr_timerServo);   // period between updates in milliseconds.
    MsTimer2::start();
+   // Timer1.initialize(1);                     // Initialize timer1 period in microseconds.
+   // Timer1.attachInterrupt(isr_timerServo);   // Attach ISR to timer1.
    
    
    if (DEBUG_MODE) {
-      //Initialize serial and wait for port to open:
+      //Initialize serial.
       Serial.begin(9600);
-      Serial.println("Serial Debug");
-      Serial.println("------------");
+      sprintf(bufDebug, "Serial Debug");
+      Serial.println(bufDebug);
+      sprintf(bufDebug, "------------");
+      Serial.println(bufDebug);
    }
 }
 
@@ -91,16 +103,61 @@ void loop() {
    
    // Event handlers.
    if (timerServoExp) {
-     updatePos();
-   }
-   
-   
-   // Check if power down is occuring by reading power sense.
-   if (!DEBUG_MODE) {
-      if (digitalRead(pin_pwr_sense) == LOW) {
-         powerDown();
+      if (cntEnUpServo == 0) {
+         cntTimerServoExp = 0;
+         cntEnUpServo = 0;
+         updatePos();
+      }
+      else {
+         if (cntTimerServoExp == 100) {
+            cntTimerServoExp = 0;
+            cntEnUpServo = 0;
+            updatePos();
+            
+            // sprintf(bufDebug, "cntTimerServoExpMax = %i\n", cntTimerServoExpMax);
+            // Serial.println(bufDebug);
+         }
+         else {
+            cntTimerServoExp++;
+         }
       }
    }
+   
+   // if (timerServoExp) {
+      // if (cntEnUpServo == 0) {
+         // cntTimerServoExp = 0;
+         // cntEnUpServo = 0;
+         // updatePos();
+      // }
+      // else {
+         // long POS_RANGE = POS_OPEN - POS_CLOSED;
+         // POS_RANGE = abs(POS_RANGE);
+         
+         // unsigned long cntTimerServoExpMax = MOVE_TIME_MS / (unsigned long)cntEnUpServo / POS_RANGE;
+         
+         // if (cntTimerServoExpMax < 1) {   // Servo timer counter max range check.
+            // cntTimerServoExpMax = 1;
+         // }
+         
+         // if (cntTimerServoExp == cntTimerServoExpMax) {
+            // cntTimerServoExp = 0;
+            // cntEnUpServo = 0;
+            // updatePos();
+            
+            // // sprintf(bufDebug, "cntTimerServoExpMax = %i\n", cntTimerServoExpMax);
+            // // Serial.println(bufDebug);
+         // }
+         // else {
+            // cntTimerServoExp++;
+         // }
+      // }
+   // }
+   
+   
+   // // Check if power down is occuring by reading power sense.
+   // if (digitalRead(pin_pwr_sense) == LOW) {
+      // powerDown();
+   // }
 }
 
 
@@ -115,18 +172,18 @@ void updatePos() {
    for (int i = 0; i < NUM_STALLS; i++) {
       // Move if switch is at OPEN, but door is not at OPEN.
       if (sw[i] == OPEN) {
-         if (pos[i] != posOpen) {
+         if (pos[i] != POS_OPEN) {
             pos[i]++;
-            // pos[i] += 10;
             enUpServo[i] = true;
+            cntEnUpServo++;
          }
       }
       // Move if switch is at CLOSED, but door is not at CLOSED.
       else if (sw[i] == CLOSED) {
-         if (pos[i] != posClosed) {
+         if (pos[i] != POS_CLOSED) {
             pos[i]--;
-            // pos[i] += 10;
             enUpServo[i] = true;
+            cntEnUpServo++;
          }
       }
    }
@@ -144,7 +201,7 @@ void updateServo() {
          digitalWrite(pin_svo_pwm[i], HIGH);
          while (micros() - startTime < pos[i]); // Pulse PWM high for position length.
          digitalWrite(pin_svo_pwm[i], LOW);
-         enUpServo[i] = false;
+         enUpServo[i] = false;                  // Clear enable.
       }
    }
 }
