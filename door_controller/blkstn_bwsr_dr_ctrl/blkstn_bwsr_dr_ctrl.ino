@@ -123,9 +123,6 @@ void loop() {
             cntTimerServoExp = 0;
             cntEnUpServo = 0;
             updatePos();
-            
-            // sprintf(bufDebug, "cntTimerServoExpMax = %i\n", cntTimerServoExpMax);
-            // Serial.println(bufDebug);
          }
          else {
             cntTimerServoExp++;
@@ -244,30 +241,6 @@ void updatePos() {
    updateServo();
    timerServoExp = false;
 }
-
-// void updatePos() {
-   // for (int i = 0; i < NUM_STALLS; i++) {
-      // // Move if switch is at OPEN, but door is not at OPEN.
-      // if (sw[i] == OPEN) {
-         // if (pos[i] != POS_OPEN) {
-            // pos[i]--;
-            // enUpServo[i] = true;
-            // cntEnUpServo++;
-         // }
-      // }
-      // // Move if switch is at CLOSED, but door is not at CLOSED.
-      // else if (sw[i] == CLOSED) {
-         // if (pos[i] != POS_CLOSED) {
-            // pos[i]++;
-            // enUpServo[i] = true;
-            // cntEnUpServo++;
-         // }
-      // }
-   // }
-   
-   // updateServo();
-   // timerServoExp = false;
-// }
 
 
 // Update servo postion.
