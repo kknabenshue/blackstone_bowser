@@ -7,6 +7,9 @@
 #define OPEN HIGH
 #define CLOSED LOW
 #define END true
+#define MOVE_NONE 0
+#define MOVE_OPEN 1
+#define MOVE_CLOSED 2
 
 #define NUM_STALLS 4
 #define MOVE_TIME_MS 4000              // Move time in milliseconds.
@@ -17,6 +20,9 @@
 // #define POS_CLOSED 1920                   // Closed position.
 #define POS_OPEN 1150                     // Open position.
 #define POS_CLOSED 1800                   // Closed position.
+// #define POS_OPEN 1400                     // Open position.
+// #define POS_CLOSED 1700                   // Closed position.
+#define POS_OVERSHOOT 20                  // Amount to overshoot endpoints.
 
 char bufDebug[32];                        // Debug character buffer.
 
@@ -30,8 +36,10 @@ byte pin_svo_pwm[NUM_STALLS] = {          // Array of pin numbers for servo PWM.
 
 byte pin_pwr_sense = 5;                   // Power sense pin. TODO: Replace with actual pin location.
 
-unsigned int sw[NUM_STALLS];              // Switch state array.
+byte sw[NUM_STALLS];                      // Switch state array.
+byte dir[NUM_STALLS];                     // Direction of movement array.
 unsigned int pos[NUM_STALLS];             // Door position array.
+
 
 bool enUpServo[NUM_STALLS];               // Array of enables for the update function.
 
@@ -45,6 +53,7 @@ void setup() {
    // Setup logic variables: w/o EEPROM.
    for (int i = 0; i < NUM_STALLS; i++) {
       pos[i] = POS_CLOSED;  // TODO: Replace with memory read of last position.
+      dir[i] = OPEN;
    }
    
    
@@ -170,28 +179,95 @@ void isr_timerServo() {
 
 // Update position values.
 void updatePos() {
+   byte move[NUM_STALLS];
+   
    for (int i = 0; i < NUM_STALLS; i++) {
-      // Move if switch is at OPEN, but door is not at OPEN.
+      move[i] = MOVE_NONE;
+      
       if (sw[i] == OPEN) {
-         if (pos[i] != POS_OPEN) {
-            pos[i]--;
-            enUpServo[i] = true;
-            cntEnUpServo++;
+         if (pos[i] > POS_OPEN) {
+            move[i] = MOVE_OPEN;
+         }
+         else if (pos[i] == POS_OPEN) {
+            if (dir[i] == OPEN) {
+               move[i] = MOVE_OPEN;
+            }
+         }
+         else if (pos[i] < POS_OPEN) {       // Passed open.
+            if (pos[i] == POS_OPEN - POS_OVERSHOOT) {      // End of range.
+               dir[i] = CLOSED;
+               move[i] = MOVE_CLOSED;
+            }
+            else if (dir[i] == OPEN) {
+               move[i] = MOVE_OPEN;
+            }
+            else if (dir[i] == CLOSED) {
+               move[i] = MOVE_CLOSED;
+            }
          }
       }
-      // Move if switch is at CLOSED, but door is not at CLOSED.
       else if (sw[i] == CLOSED) {
-         if (pos[i] != POS_CLOSED) {
-            pos[i]++;
-            enUpServo[i] = true;
-            cntEnUpServo++;
+         if (pos[i] < POS_CLOSED) {
+            move[i] = MOVE_CLOSED;
          }
+         else if (pos[i] == POS_CLOSED) {
+            if (dir[i] == CLOSED) {
+               move[i] = MOVE_CLOSED;
+            }
+         }
+         else if (pos[i] > POS_CLOSED) {     // Passed closed.
+            if (pos[i] == POS_CLOSED + POS_OVERSHOOT) {    // End of range.
+               dir[i] = OPEN;
+               move[i] = MOVE_OPEN;
+            }
+            else if (dir[i] == OPEN) {
+               move[i] = MOVE_OPEN;
+            }
+            else if (dir[i] == CLOSED) {
+               move[i] = MOVE_CLOSED;
+            }
+         }
+      }
+      
+      if (move[i] == MOVE_OPEN) {
+         pos[i]--;
+         enUpServo[i] = true;
+         cntEnUpServo++;
+      }
+      else if (move[i] == MOVE_CLOSED) {
+         pos[i]++;
+         enUpServo[i] = true;
+         cntEnUpServo++;
       }
    }
    
    updateServo();
    timerServoExp = false;
 }
+
+// void updatePos() {
+   // for (int i = 0; i < NUM_STALLS; i++) {
+      // // Move if switch is at OPEN, but door is not at OPEN.
+      // if (sw[i] == OPEN) {
+         // if (pos[i] != POS_OPEN) {
+            // pos[i]--;
+            // enUpServo[i] = true;
+            // cntEnUpServo++;
+         // }
+      // }
+      // // Move if switch is at CLOSED, but door is not at CLOSED.
+      // else if (sw[i] == CLOSED) {
+         // if (pos[i] != POS_CLOSED) {
+            // pos[i]++;
+            // enUpServo[i] = true;
+            // cntEnUpServo++;
+         // }
+      // }
+   // }
+   
+   // updateServo();
+   // timerServoExp = false;
+// }
 
 
 // Update servo postion.
