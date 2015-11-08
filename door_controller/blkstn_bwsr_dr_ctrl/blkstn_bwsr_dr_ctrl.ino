@@ -50,23 +50,23 @@ volatile boolean timerServoExp;           // Flag to signal servo timer expirati
 
 // Setup function.
 void setup() {
-   // Setup logic variables: w/o EEPROM.
-   for (int i = 0; i < NUM_STALLS; i++) {
-      pos[i] = POS_CLOSED;  // TODO: Replace with memory read of last position.
-      dir[i] = OPEN;
-   }
+   // // Setup logic variables: w/o EEPROM.
+   // for (int i = 0; i < NUM_STALLS; i++) {
+      // pos[i] = POS_CLOSED;  // TODO: Replace with memory read of last position.
+      // dir[i] = OPEN;
+   // }
    
    
-//   // Setup logic variables: w/ EEPROM.
-//   int eeAddr = 0;
-//   
-//   EEPROM.get(eeAddr,pos);    // Get entire position array.
-//   
-//   // Get postition array one element at a time.
-//   // for (int i = 0; i < NUM_STALLS; i++) {
-//      // EEPROM.get(eeAddr,pos[i]);
-//      // eeAddr += sizeof(pos[i]);
-//   // }
+  // Setup logic variables: w/ EEPROM.
+  int eeAddr = 0;
+  
+  EEPROM.get(eeAddr,pos);    // Get entire position array.
+  
+  // Get postition array one element at a time.
+  // for (int i = 0; i < NUM_STALLS; i++) {
+     // EEPROM.get(eeAddr,pos[i]);
+     // eeAddr += sizeof(pos[i]);
+  // }
    
    
    // Setup servos.
@@ -164,10 +164,10 @@ void loop() {
    // }
    
    
-   // // Check if power down is occuring by reading power sense.
-   // if (digitalRead(pin_pwr_sense) == LOW) {
-      // powerDown();
-   // }
+   // Check if power down is occuring by reading power sense.
+   if (digitalRead(pin_pwr_sense) == LOW) {
+      powerDown();
+   }
 }
 
 
