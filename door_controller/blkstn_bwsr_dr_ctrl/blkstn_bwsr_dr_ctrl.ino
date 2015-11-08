@@ -6,16 +6,17 @@
 
 #define OPEN HIGH
 #define CLOSED LOW
+#define END true
 
 #define NUM_STALLS 4
 #define MOVE_TIME_MS 4000              // Move time in milliseconds.
 
 #define DEBUG_MODE 1
 
-// #define POS_CLOSED 1150             // Closed position.
-// #define POS_OPEN 1920               // Open position.
-#define POS_CLOSED 1300                   // Closed position.
-#define POS_OPEN 1700                     // Open position.
+// #define POS_OPEN 1150                     // Open position.
+// #define POS_CLOSED 1920                   // Closed position.
+#define POS_OPEN 1150                     // Open position.
+#define POS_CLOSED 1800                   // Closed position.
 
 char bufDebug[32];                        // Debug character buffer.
 
@@ -173,7 +174,7 @@ void updatePos() {
       // Move if switch is at OPEN, but door is not at OPEN.
       if (sw[i] == OPEN) {
          if (pos[i] != POS_OPEN) {
-            pos[i]++;
+            pos[i]--;
             enUpServo[i] = true;
             cntEnUpServo++;
          }
@@ -181,7 +182,7 @@ void updatePos() {
       // Move if switch is at CLOSED, but door is not at CLOSED.
       else if (sw[i] == CLOSED) {
          if (pos[i] != POS_CLOSED) {
-            pos[i]--;
+            pos[i]++;
             enUpServo[i] = true;
             cntEnUpServo++;
          }
