@@ -85,6 +85,10 @@ void setup() {
    }
    
    
+   // Setup power sense.
+   pinMode(pin_pwr_sense, INPUT);
+   
+   
    // Setup servo timer interrupt.
    MsTimer2::set(1, isr_timerServo);   // period between updates in milliseconds.
    MsTimer2::start();
