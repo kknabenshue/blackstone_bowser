@@ -34,7 +34,9 @@ byte pin_svo_pwm[NUM_STALLS] = {          // Array of pin numbers for servo PWM.
    13, 12, 11, 10
 };
 
-byte pin_pwr_sense = 5;                   // Power sense pin. TODO: Replace with actual pin location.
+byte pin_pwr_sense = 5;                   // Power sense pin.
+
+byte pin_servo_fet = 4;                   // Servo FET pin.
 
 byte sw[NUM_STALLS];                      // Switch state array.
 byte dir[NUM_STALLS];                     // Direction of movement array.
@@ -75,6 +77,9 @@ void setup() {
       digitalWrite(pin_svo_pwm[i], LOW);
       enUpServo[i] = true;
    }
+   
+   pinMode(pin_servo_fet, OUTPUT);
+   digitalWrite(pin_servo_fet, HIGH);
    
    updateServo();                      // TODO: Replace with slow movement to correct memory position.
    
@@ -249,6 +254,8 @@ void updatePos() {
 
 // Update servo postion.
 void updateServo() {
+   digitalWrite(pin_servo_fet, LOW);
+   
    for (int i = 0; i < NUM_STALLS; i++) {
       if (enUpServo[i]) {
          long startTime = micros();
@@ -258,6 +265,8 @@ void updateServo() {
          enUpServo[i] = false;                  // Clear enable.
       }
    }
+   
+   digitalWrite(pin_servo_fet, HIGH);
 }
 
 
@@ -276,6 +285,11 @@ void powerDown() {
          // EEPROM.put(eeAddr,pos[i]);
          // eeAddr += sizeof(pos[i]);
       // }
+      
+      if (DEBUG_MODE) {
+         sprintf(bufDebug, "Power Down...Bye Bye...");
+         Serial.println(bufDebug);
+      }
       
       // Wait forever...
    }
