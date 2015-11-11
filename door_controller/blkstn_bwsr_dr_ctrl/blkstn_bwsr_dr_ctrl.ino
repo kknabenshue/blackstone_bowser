@@ -79,7 +79,7 @@ void setup() {
    }
    
    pinMode(pin_servo_fet, OUTPUT);
-   digitalWrite(pin_servo_fet, HIGH);
+   digitalWrite(pin_servo_fet, LOW);
    
    updateServo();                      // TODO: Replace with slow movement to correct memory position.
    
@@ -254,8 +254,6 @@ void updatePos() {
 
 // Update servo postion.
 void updateServo() {
-   digitalWrite(pin_servo_fet, LOW);
-   
    for (int i = 0; i < NUM_STALLS; i++) {
       if (enUpServo[i]) {
          long startTime = micros();
@@ -265,8 +263,6 @@ void updateServo() {
          enUpServo[i] = false;                  // Clear enable.
       }
    }
-   
-   digitalWrite(pin_servo_fet, HIGH);
 }
 
 
