@@ -1,6 +1,6 @@
 #include <MsTimer2.h>
 #include <EEPROM.h>
-#include <TimerOne.h>
+// #include <TimerOne.h>
 
 #define arr_length(x)  (sizeof(x)/sizeof(*x))   // Find number of elements in array x.
 
@@ -12,16 +12,12 @@
 #define MOVE_CLOSED 2
 
 #define NUM_STALLS 4
-#define MOVE_TIME_MS 4000              // Move time in milliseconds.
+#define MOVE_TIME_MS 4000                 // Move time in milliseconds.
 
 #define DEBUG_MODE 1
 
-// #define POS_OPEN 1150                     // Open position.
-// #define POS_CLOSED 1920                   // Closed position.
-#define POS_OPEN 1150                     // Open position.
-#define POS_CLOSED 1800                   // Closed position.
-// #define POS_OPEN 1400                     // Open position.
-// #define POS_CLOSED 1700                   // Closed position.
+#define POS_OPEN 700                      // Open position.
+#define POS_CLOSED 2400                   // Closed position.
 #define POS_OVERSHOOT 20                  // Amount to overshoot endpoints.
 
 char bufDebug[32];                        // Debug character buffer.
@@ -59,17 +55,26 @@ void setup() {
    // }
    
    
-  // Setup logic variables: w/ EEPROM.
-  int eeAddr = 0;
-  
-  EEPROM.get(eeAddr,pos);    // Get entire position array.
+   // Setup logic variables: w/ EEPROM.
+   int eeAddr = 0;
+
+   EEPROM.get(eeAddr,pos);    // Get entire position array.
+   EEPROM.get(eeAddr+32,dir);    // Get entire position array.
   
   // Get postition array one element at a time.
   // for (int i = 0; i < NUM_STALLS; i++) {
      // EEPROM.get(eeAddr,pos[i]);
      // eeAddr += sizeof(pos[i]);
   // }
-   
+  
+   // for (int i = 0; i < NUM_STALLS; i++) {
+      // if (pos[i] == POS_OPEN) {
+         // dir[i] = CLOSED;
+      // }
+      // else if (pos[i] == POS_CLOSED) {
+         // dir[i] = OPEN;
+      // }
+   // }
    
    // Setup servos.
    for (int i = 0; i < NUM_STALLS; i++) {
@@ -80,6 +85,7 @@ void setup() {
    
    pinMode(pin_servo_fet, OUTPUT);
    digitalWrite(pin_servo_fet, LOW);
+   delay(100);
    
    updateServo();                      // TODO: Replace with slow movement to correct memory position.
    
@@ -275,6 +281,7 @@ void powerDown() {
       int eeAddr = 0;
       
       EEPROM.put(eeAddr,pos);    // Put entire position array.
+      EEPROM.put(eeAddr+32,dir);    // Put entire position array.
       
       // Put position array one element at a time.
       // for (int i = 0; i < NUM_STALLS; i++) {
