@@ -1,24 +1,22 @@
 #include <MsTimer2.h>
 #include <EEPROM.h>
-// #include <TimerOne.h>
+
+#define EN_DEBUG_MODE true                // Enable debug mode.
+#define EN_EEPROM true                    // Enable EEPROM logic.
 
 #define arr_length(x)  (sizeof(x)/sizeof(*x))   // Find number of elements in array x.
 
 #define OPEN HIGH
 #define CLOSED LOW
-#define END true
 #define MOVE_NONE 0
 #define MOVE_OPEN 1
 #define MOVE_CLOSED 2
 
-#define NUM_STALLS 4
+#define NUM_STALLS 4                      // Number of stalls.
 #define MOVE_TIME_MS 4000                 // Move time in milliseconds.
-
-#define DEBUG_MODE 1
 
 #define POS_OPEN 700                      // Open position.
 #define POS_CLOSED 2400                   // Closed position.
-#define POS_OVERSHOOT 20                  // Amount to overshoot endpoints.
 
 char bufDebug[32];                        // Debug character buffer.
 
@@ -35,7 +33,6 @@ byte pin_pwr_sense = 5;                   // Power sense pin.
 byte pin_servo_fet = 4;                   // Servo FET pin.
 
 byte sw[NUM_STALLS];                      // Switch state array.
-byte dir[NUM_STALLS];                     // Direction of movement array.
 unsigned int pos[NUM_STALLS];             // Door position array.
 
 
@@ -48,44 +45,31 @@ volatile boolean timerServoExp;           // Flag to signal servo timer expirati
 
 // Setup function.
 void setup() {
-   // // Setup logic variables: w/o EEPROM.
-   // for (int i = 0; i < NUM_STALLS; i++) {
-      // pos[i] = POS_CLOSED;  // TODO: Replace with memory read of last position.
-      // dir[i] = OPEN;
-   // }
+   // Setup logic variables: w/o EEPROM.
+   if (!EN_EEPROM) {
+      for (int i = 0; i < NUM_STALLS; i++) {
+         pos[i] = POS_CLOSED;  // TODO: Replace with memory read of last position.
+         dir[i] = OPEN;
+      }
+   }
    
    
    // Setup logic variables: w/ EEPROM.
-   int eeAddr = 0;
-
-   EEPROM.get(eeAddr,pos);    // Get entire position array.
-   EEPROM.get(eeAddr+32,dir);    // Get entire position array.
-  
-  // Get postition array one element at a time.
-  // for (int i = 0; i < NUM_STALLS; i++) {
-     // EEPROM.get(eeAddr,pos[i]);
-     // eeAddr += sizeof(pos[i]);
-  // }
-  
-   // for (int i = 0; i < NUM_STALLS; i++) {
-      // if (pos[i] == POS_OPEN) {
-         // dir[i] = CLOSED;
-      // }
-      // else if (pos[i] == POS_CLOSED) {
-         // dir[i] = OPEN;
-      // }
-   // }
+   if (EN_EEPROM) {
+      int eeAddr = 0;
+      EEPROM.get(eeAddr,pos);    // Get entire position array.
+   }
+   
    
    // Setup servos.
+   pinMode(pin_servo_fet, OUTPUT);
+   digitalWrite(pin_servo_fet, LOW);
+   
    for (int i = 0; i < NUM_STALLS; i++) {
       pinMode(pin_svo_pwm[i], OUTPUT);
       digitalWrite(pin_svo_pwm[i], LOW);
       enUpServo[i] = true;
    }
-   
-   pinMode(pin_servo_fet, OUTPUT);
-   digitalWrite(pin_servo_fet, LOW);
-   delay(100);
    
    updateServo();                      // TODO: Replace with slow movement to correct memory position.
    
@@ -101,14 +85,12 @@ void setup() {
    
    
    // Setup servo timer interrupt.
-   MsTimer2::set(1, isr_timerServo);   // period between updates in milliseconds.
+   MsTimer2::set(1, isr_timerServo);   // Period between updates in milliseconds.
    MsTimer2::start();
-   // Timer1.initialize(1);                     // Initialize timer1 period in microseconds.
-   // Timer1.attachInterrupt(isr_timerServo);   // Attach ISR to timer1.
    
    
-   if (DEBUG_MODE) {
-      //Initialize serial.
+   //Initialize serial.
+   if (EN_DEBUG_MODE) {
       Serial.begin(9600);
       sprintf(bufDebug, "Serial Debug");
       Serial.println(bufDebug);
@@ -177,8 +159,10 @@ void loop() {
    
    
    // Check if power down is occuring by reading power sense.
-   if (digitalRead(pin_pwr_sense) == LOW) {
-      powerDown();
+   if (EN_EEPROM) {
+      if (digitalRead(pin_pwr_sense) == LOW) {
+         powerDown();
+      }
    }
 }
 
@@ -279,17 +263,9 @@ void powerDown() {
       
       // Write current servo positions to nonvolatile memory.
       int eeAddr = 0;
-      
       EEPROM.put(eeAddr,pos);    // Put entire position array.
-      EEPROM.put(eeAddr+32,dir);    // Put entire position array.
       
-      // Put position array one element at a time.
-      // for (int i = 0; i < NUM_STALLS; i++) {
-         // EEPROM.put(eeAddr,pos[i]);
-         // eeAddr += sizeof(pos[i]);
-      // }
-      
-      if (DEBUG_MODE) {
+      if (EN_DEBUG_MODE) {
          sprintf(bufDebug, "Power Down...Bye Bye...");
          Serial.println(bufDebug);
       }
