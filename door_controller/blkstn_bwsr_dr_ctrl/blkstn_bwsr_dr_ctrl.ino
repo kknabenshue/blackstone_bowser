@@ -178,50 +178,16 @@ void updatePos() {
    byte move[NUM_STALLS];
    
    for (int i = 0; i < NUM_STALLS; i++) {
-      move[i] = MOVE_NONE;
-      
+      // Move if switch is at OPEN, but door is not at OPEN.
       if (sw[i] == OPEN) {
-         if (pos[i] > POS_OPEN) {
+         if (pos[i] != POS_OPEN) {
             move[i] = MOVE_OPEN;
          }
-         else if (pos[i] == POS_OPEN) {
-            if (dir[i] == OPEN) {
-               move[i] = MOVE_OPEN;
-            }
-         }
-         else if (pos[i] < POS_OPEN) {       // Passed open.
-            if (pos[i] == POS_OPEN - POS_OVERSHOOT) {      // End of range.
-               dir[i] = CLOSED;
-               move[i] = MOVE_CLOSED;
-            }
-            else if (dir[i] == OPEN) {
-               move[i] = MOVE_OPEN;
-            }
-            else if (dir[i] == CLOSED) {
-               move[i] = MOVE_CLOSED;
-            }
-         }
       }
+      // Move if switch is at CLOSED, but door is not at CLOSED.
       else if (sw[i] == CLOSED) {
-         if (pos[i] < POS_CLOSED) {
+         if (pos[i] != POS_CLOSED) {
             move[i] = MOVE_CLOSED;
-         }
-         else if (pos[i] == POS_CLOSED) {
-            if (dir[i] == CLOSED) {
-               move[i] = MOVE_CLOSED;
-            }
-         }
-         else if (pos[i] > POS_CLOSED) {     // Passed closed.
-            if (pos[i] == POS_CLOSED + POS_OVERSHOOT) {    // End of range.
-               dir[i] = OPEN;
-               move[i] = MOVE_OPEN;
-            }
-            else if (dir[i] == OPEN) {
-               move[i] = MOVE_OPEN;
-            }
-            else if (dir[i] == CLOSED) {
-               move[i] = MOVE_CLOSED;
-            }
          }
       }
       
