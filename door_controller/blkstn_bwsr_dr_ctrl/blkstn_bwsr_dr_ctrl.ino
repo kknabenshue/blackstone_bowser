@@ -49,7 +49,6 @@ void setup() {
    if (!EN_EEPROM) {
       for (int i = 0; i < NUM_STALLS; i++) {
          pos[i] = POS_CLOSED;  // TODO: Replace with memory read of last position.
-         dir[i] = OPEN;
       }
    }
    
