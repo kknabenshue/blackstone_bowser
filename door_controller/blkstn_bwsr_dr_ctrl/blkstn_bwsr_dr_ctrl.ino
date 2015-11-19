@@ -21,6 +21,7 @@
 #define POS_STEP 10                       // Step size.
 
 char bufDebug[32];                        // Debug character buffer.
+char bufNotNew[7];                        // Not new indicator character buffer.
 
 byte pin_sw[NUM_STALLS] = {               // Array of pin numbers for switches.
    9, 8, 6, 7
@@ -50,7 +51,7 @@ void setup() {
    // Setup logic variables: w/o EEPROM.
    if (!EN_EEPROM || EN_INIT_MODE) {
       for (int i = 0; i < NUM_STALLS; i++) {
-         pos[i] = POS_CLOSED;  // TODO: Replace with memory read of last position.
+         pos[i] = POS_CLOSED;
       }
    }
    
@@ -58,7 +59,23 @@ void setup() {
    // Setup logic variables: w/ EEPROM.
    if (EN_EEPROM && !EN_INIT_MODE) {
       int eeAddr = 0;
-      EEPROM.get(eeAddr,pos);    // Get entire position array.
+      EEPROM.get(eeAddr,bufNotNew); // Get notNew indicator.
+      eeAddr += sizeof(bufNotNew);
+      
+      if (strcmp(bufNotNew,"notnew") == 0) { // The EEPROM has been previously written to.
+         EEPROM.get(eeAddr,pos);    // Get entire position array.
+      }
+      else {                                 // The EEPROM has not been previously written to.
+         for (int i = 0; i < NUM_STALLS; i++) {
+            pos[i] = POS_CLOSED;
+         }
+         
+         eeAddr = 0;
+         sprintf(bufNotNew,"notnew");
+         EEPROM.put(eeAddr,bufNotNew);
+         eeAddr += sizeof(bufNotNew);
+         EEPROM.put(eeAddr,pos);
+      }
    }
    
    
@@ -72,7 +89,7 @@ void setup() {
       enUpServo[i] = true;
    }
    
-   updateServo();                      // TODO: Replace with slow movement to correct memory position.
+   updateServo();
    
    
    // Setup switches.
