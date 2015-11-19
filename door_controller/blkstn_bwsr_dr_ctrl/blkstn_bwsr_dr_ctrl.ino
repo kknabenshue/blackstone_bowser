@@ -209,6 +209,13 @@ void updatePos() {
          enUpServo[i] = true;
          cntEnUpServo++;
       }
+      
+      if (pos[i] < POS_OPEN) {
+         pos[i] = POS_OPEN;
+      }
+      else if (pos[i] > POS_CLOSED) {
+         pos[i] = POS_CLOSED;
+      }
    }
    
    updateServo();
