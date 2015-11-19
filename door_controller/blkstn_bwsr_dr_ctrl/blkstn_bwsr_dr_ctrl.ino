@@ -2,6 +2,7 @@
 #include <EEPROM.h>
 
 #define EN_DEBUG_MODE true                // Enable debug mode.
+#define EN_INIT_MODE false                // Enable init mode.
 #define EN_EEPROM true                    // Enable EEPROM logic.
 
 #define arr_length(x)  (sizeof(x)/sizeof(*x))   // Find number of elements in array x.
@@ -15,8 +16,9 @@
 #define NUM_STALLS 4                      // Number of stalls.
 #define MOVE_TIME_MS 4000                 // Move time in milliseconds.
 
-#define POS_OPEN 700                      // Open position.
+#define POS_OPEN 600                      // Open position.
 #define POS_CLOSED 2400                   // Closed position.
+#define POS_STEP 10                       // Step size.
 
 char bufDebug[32];                        // Debug character buffer.
 
@@ -46,7 +48,7 @@ volatile boolean timerServoExp;           // Flag to signal servo timer expirati
 // Setup function.
 void setup() {
    // Setup logic variables: w/o EEPROM.
-   if (!EN_EEPROM) {
+   if (!EN_EEPROM || EN_INIT_MODE) {
       for (int i = 0; i < NUM_STALLS; i++) {
          pos[i] = POS_CLOSED;  // TODO: Replace with memory read of last position.
       }
@@ -54,7 +56,7 @@ void setup() {
    
    
    // Setup logic variables: w/ EEPROM.
-   if (EN_EEPROM) {
+   if (EN_EEPROM && !EN_INIT_MODE) {
       int eeAddr = 0;
       EEPROM.get(eeAddr,pos);    // Get entire position array.
    }
@@ -84,7 +86,7 @@ void setup() {
    
    
    // Setup servo timer interrupt.
-   MsTimer2::set(1, isr_timerServo);   // Period between updates in milliseconds.
+   MsTimer2::set(20, isr_timerServo);   // Period between updates in milliseconds.
    MsTimer2::start();
    
    
@@ -108,22 +110,27 @@ void loop() {
    
    
    // Event handlers.
+   // if (timerServoExp) {
+      // if (cntEnUpServo == 0) {
+         // cntTimerServoExp = 0;
+         // cntEnUpServo = 0;
+         // updatePos();
+      // }
+      // else {
+         // if (cntTimerServoExp == 100) {
+            // cntTimerServoExp = 0;
+            // cntEnUpServo = 0;
+            // updatePos();
+         // }
+         // else {
+            // cntTimerServoExp++;
+         // }
+      // }
+   // }
+   
    if (timerServoExp) {
-      if (cntEnUpServo == 0) {
-         cntTimerServoExp = 0;
-         cntEnUpServo = 0;
-         updatePos();
-      }
-      else {
-         if (cntTimerServoExp == 100) {
-            cntTimerServoExp = 0;
-            cntEnUpServo = 0;
-            updatePos();
-         }
-         else {
-            cntTimerServoExp++;
-         }
-      }
+      cntEnUpServo = 0;
+      updatePos();
    }
    
    // if (timerServoExp) {
@@ -177,6 +184,8 @@ void updatePos() {
    byte move[NUM_STALLS];
    
    for (int i = 0; i < NUM_STALLS; i++) {
+      move[i] = MOVE_NONE;
+      
       // Move if switch is at OPEN, but door is not at OPEN.
       if (sw[i] == OPEN) {
          if (pos[i] != POS_OPEN) {
@@ -191,12 +200,12 @@ void updatePos() {
       }
       
       if (move[i] == MOVE_OPEN) {
-         pos[i]--;
+         pos[i] = pos[i] - POS_STEP;
          enUpServo[i] = true;
          cntEnUpServo++;
       }
       else if (move[i] == MOVE_CLOSED) {
-         pos[i]++;
+         pos[i] = pos[i] + POS_STEP;
          enUpServo[i] = true;
          cntEnUpServo++;
       }
@@ -211,9 +220,10 @@ void updatePos() {
 void updateServo() {
    for (int i = 0; i < NUM_STALLS; i++) {
       if (enUpServo[i]) {
-         long startTime = micros();
+         // long startTime = micros();
          digitalWrite(pin_svo_pwm[i], HIGH);
-         while (micros() - startTime < pos[i]); // Pulse PWM high for position length.
+         // while (micros() - startTime < pos[i]); // Pulse PWM high for position length.
+         delayMicroseconds(pos[i]);
          digitalWrite(pin_svo_pwm[i], LOW);
          enUpServo[i] = false;                  // Clear enable.
       }
