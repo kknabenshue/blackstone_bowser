@@ -23,7 +23,7 @@
 char bufDebug[32];                        // Debug character buffer.
 
 byte pin_sw[NUM_STALLS] = {               // Array of pin numbers for switches.
-   9, 8, 6, 7
+   7, 6, 8, 9
 };
 
 byte pin_svo_pwm[NUM_STALLS] = {          // Array of pin numbers for servo PWM.
