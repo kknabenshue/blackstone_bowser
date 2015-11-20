@@ -5,8 +5,6 @@
 #define EN_INIT_MODE false                // Enable init mode.
 #define EN_EEPROM true                    // Enable EEPROM logic.
 
-#define arr_length(x)  (sizeof(x)/sizeof(*x))   // Find number of elements in array x.
-
 #define OPEN LOW
 #define CLOSED HIGH
 #define MOVE_NONE 0
@@ -16,9 +14,9 @@
 #define NUM_STALLS 4                      // Number of stalls.
 #define MOVE_TIME_MS 4000                 // Move time in milliseconds.
 
-#define POS_CLOSED 600                    // Open position.
-#define POS_OPEN 2400                     // Closed position.
-#define POS_STEP 10                       // Step size.
+#define POS_CLOSED 600                    // Open position. Must be multiple of POS_STEP.
+#define POS_OPEN 2400                     // Closed position. Must be multiple of POS_STEP.
+#define POS_STEP 5                        // Step size.
 
 char bufDebug[32];                        // Debug character buffer.
 
@@ -86,7 +84,7 @@ void setup() {
    
    
    // Setup servo timer interrupt.
-   MsTimer2::set(20, isr_timerServo);   // Period between updates in milliseconds.
+   MsTimer2::set(15, isr_timerServo);   // Period between updates in milliseconds.
    MsTimer2::start();
    
    
@@ -108,60 +106,10 @@ void loop() {
       sw[i] = digitalRead(pin_sw[i]);
    }
    
-   
-   // Event handlers.
-   // if (timerServoExp) {
-      // if (cntEnUpServo == 0) {
-         // cntTimerServoExp = 0;
-         // cntEnUpServo = 0;
-         // updatePos();
-      // }
-      // else {
-         // if (cntTimerServoExp == 100) {
-            // cntTimerServoExp = 0;
-            // cntEnUpServo = 0;
-            // updatePos();
-         // }
-         // else {
-            // cntTimerServoExp++;
-         // }
-      // }
-   // }
-   
    if (timerServoExp) {
       cntEnUpServo = 0;
       updatePos();
    }
-   
-   // if (timerServoExp) {
-      // if (cntEnUpServo == 0) {
-         // cntTimerServoExp = 0;
-         // cntEnUpServo = 0;
-         // updatePos();
-      // }
-      // else {
-         // long POS_RANGE = POS_OPEN - POS_CLOSED;
-         // POS_RANGE = abs(POS_RANGE);
-         
-         // unsigned long cntTimerServoExpMax = MOVE_TIME_MS / (unsigned long)cntEnUpServo / POS_RANGE;
-         
-         // if (cntTimerServoExpMax < 1) {   // Servo timer counter max range check.
-            // cntTimerServoExpMax = 1;
-         // }
-         
-         // if (cntTimerServoExp == cntTimerServoExpMax) {
-            // cntTimerServoExp = 0;
-            // cntEnUpServo = 0;
-            // updatePos();
-            
-            // // sprintf(bufDebug, "cntTimerServoExpMax = %i\n", cntTimerServoExpMax);
-            // // Serial.println(bufDebug);
-         // }
-         // else {
-            // cntTimerServoExp++;
-         // }
-      // }
-   // }
    
    
    // Check if power down is occuring by reading power sense.
