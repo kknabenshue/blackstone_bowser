@@ -30,7 +30,6 @@ byte pin_svo_pwm[NUM_STALLS] = {          // Array of pin numbers for servo PWM.
    13, 12, 11, 10
 };
 
-// byte pin_pwr_sense = 5;                   // Power sense pin.
 int pin_pwr_sense = A0;                   // Power sense pin.
 
 byte pin_servo_fet = 4;                   // Servo FET pin.
@@ -167,7 +166,6 @@ void loop() {
    
    // Check if power down is occuring by reading power sense.
    if (EN_EEPROM) {
-      // if (digitalRead(pin_pwr_sense) == LOW) {
       if (analogRead(pin_pwr_sense) < 860) {       // round(4.2 V / 5.0 V * 1023) = 860
          powerDown();
       }
@@ -229,9 +227,7 @@ void updatePos() {
 void updateServo() {
    for (int i = 0; i < NUM_STALLS; i++) {
       if (enUpServo[i]) {
-         // long startTime = micros();
          digitalWrite(pin_svo_pwm[i], HIGH);
-         // while (micros() - startTime < pos[i]); // Pulse PWM high for position length.
          delayMicroseconds(pos[i]);
          digitalWrite(pin_svo_pwm[i], LOW);
          enUpServo[i] = false;                  // Clear enable.
