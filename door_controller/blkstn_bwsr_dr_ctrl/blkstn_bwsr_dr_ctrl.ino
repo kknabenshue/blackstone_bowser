@@ -1,14 +1,14 @@
 #include <MsTimer2.h>
 #include <EEPROM.h>
 
-#define EN_DEBUG_MODE true                // Enable debug mode.
+#define EN_DEBUG_MODE false               // Enable debug mode.
 #define EN_INIT_MODE false                // Enable init mode.
 #define EN_EEPROM true                    // Enable EEPROM logic.
 
 #define arr_length(x)  (sizeof(x)/sizeof(*x))   // Find number of elements in array x.
 
-#define OPEN HIGH
-#define CLOSED LOW
+#define OPEN LOW
+#define CLOSED HIGH
 #define MOVE_NONE 0
 #define MOVE_OPEN 1
 #define MOVE_CLOSED 2
@@ -16,8 +16,8 @@
 #define NUM_STALLS 4                      // Number of stalls.
 #define MOVE_TIME_MS 4000                 // Move time in milliseconds.
 
-#define POS_OPEN 600                      // Open position.
-#define POS_CLOSED 2400                   // Closed position.
+#define POS_CLOSED 600                    // Open position.
+#define POS_OPEN 2400                     // Closed position.
 #define POS_STEP 10                       // Step size.
 
 char bufDebug[32];                        // Debug character buffer.
@@ -30,7 +30,7 @@ byte pin_svo_pwm[NUM_STALLS] = {          // Array of pin numbers for servo PWM.
    13, 12, 11, 10
 };
 
-byte pin_pwr_sense = 5;                   // Power sense pin.
+int pin_pwr_sense = A0;                   // Power sense pin.
 
 byte pin_servo_fet = 4;                   // Servo FET pin.
 
@@ -50,7 +50,7 @@ void setup() {
    // Setup logic variables: w/o EEPROM.
    if (!EN_EEPROM || EN_INIT_MODE) {
       for (int i = 0; i < NUM_STALLS; i++) {
-         pos[i] = POS_CLOSED;  // TODO: Replace with memory read of last position.
+         pos[i] = POS_OPEN;
       }
    }
    
@@ -72,7 +72,7 @@ void setup() {
       enUpServo[i] = true;
    }
    
-   updateServo();                      // TODO: Replace with slow movement to correct memory position.
+   updateServo();
    
    
    // Setup switches.
@@ -166,7 +166,7 @@ void loop() {
    
    // Check if power down is occuring by reading power sense.
    if (EN_EEPROM) {
-      if (digitalRead(pin_pwr_sense) == LOW) {
+      if (analogRead(pin_pwr_sense) < 860) {       // round(4.2 V / 5.0 V * 1023) = 860
          powerDown();
       }
    }
@@ -200,20 +200,20 @@ void updatePos() {
       }
       
       if (move[i] == MOVE_OPEN) {
-         pos[i] = pos[i] - POS_STEP;
-         enUpServo[i] = true;
-         cntEnUpServo++;
-      }
-      else if (move[i] == MOVE_CLOSED) {
          pos[i] = pos[i] + POS_STEP;
          enUpServo[i] = true;
          cntEnUpServo++;
       }
+      else if (move[i] == MOVE_CLOSED) {
+         pos[i] = pos[i] - POS_STEP;
+         enUpServo[i] = true;
+         cntEnUpServo++;
+      }
       
-      if (pos[i] < POS_OPEN) {
+      if (pos[i] > POS_OPEN) {
          pos[i] = POS_OPEN;
       }
-      else if (pos[i] > POS_CLOSED) {
+      else if (pos[i] < POS_CLOSED) {
          pos[i] = POS_CLOSED;
       }
    }
@@ -227,9 +227,7 @@ void updatePos() {
 void updateServo() {
    for (int i = 0; i < NUM_STALLS; i++) {
       if (enUpServo[i]) {
-         // long startTime = micros();
          digitalWrite(pin_svo_pwm[i], HIGH);
-         // while (micros() - startTime < pos[i]); // Pulse PWM high for position length.
          delayMicroseconds(pos[i]);
          digitalWrite(pin_svo_pwm[i], LOW);
          enUpServo[i] = false;                  // Clear enable.
